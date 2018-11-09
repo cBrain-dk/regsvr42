@@ -28,6 +28,9 @@ freely, subject to the following restrictions:
 
 #include "Interceptor.h"
 
+// commdlg.h is silly and defines INTERFACE...
+#undef INTERFACE
+
 struct ComClass
 {
     std::wstring clsid;
