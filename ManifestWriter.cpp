@@ -83,8 +83,9 @@ freely, subject to the following restrictions:
 
 ManifestWriter::ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion):
 CLSID(L"HKEY_CLASSES_ROOT\\CLSID\\"),
-INTERFACE(L"HKEY_CLASSES_ROOT\\Interface\\"),
-TYPELIB(L"HKEY_CLASSES_ROOT\\TypeLib\\"),
+INTERFACE(L"HKEY_CLASSES_ROOT\\INTERFACE\\"),
+TYPELIB(L"HKEY_CLASSES_ROOT\\TYPELIB\\"),
+HKCU_SOFTWARE_CLASSES(L"HKEY_CURRENT_USER\\SOFTWARE\\CLASSES\\"),
 GUID_LENGTH(38) // {00000000-0000-0000-0000-000000000000}
 {
     m_data << L"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" << std::endl;
@@ -221,11 +222,17 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
 
     while (it != interceptedValues.end())
     {
-        if (it->first.find(CLSID) != std::wstring::npos)
+        std::wstring path = it->first;
+        std::transform(path.begin(), path.end(), path.begin(), std::towupper);
+        if (path.compare(0, HKCU_SOFTWARE_CLASSES.length(), HKCU_SOFTWARE_CLASSES) == 0)
         {
-            std::wstring clsid = it->first.substr(CLSID.size(), GUID_LENGTH);
+            path = L"HKEY_CLASSES_ROOT\\" + path.substr(HKCU_SOFTWARE_CLASSES.length());
+        }
+        if (path.find(CLSID) != std::wstring::npos)
+        {
+            std::wstring clsid = path.substr(CLSID.size(), GUID_LENGTH);
 
-            if (it->first.find(L"\\Instance\\{") != std::wstring::npos)
+            if (path.find(L"\\INSTANCE\\{") != std::wstring::npos)
             {
                 // Ignore the directshow source filter information
                 ++it;
@@ -247,11 +254,11 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
                     currentComClass.description = it->second.second;
                 }
             }
-            else if (it->first.find(L"\\VersionIndependentProgID") != std::wstring::npos && it->second.first == L"(default)")
+            else if (path.find(L"\\VERSIONINDEPENDENTPROGID") != std::wstring::npos && it->second.first == L"(default)")
             {
                 currentComClass.progid = it->second.second;
             }
-            else if (it->first.find(L"\\TypeLib") != std::wstring::npos && it->second.first == L"(default)")
+            else if (path.find(L"\\TYPELIB") != std::wstring::npos && it->second.first == L"(default)")
             {
                 currentComClass.tlbid = it->second.second;
             }
@@ -261,9 +268,9 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             }
         }
 
-        if (it->first.find(TYPELIB) != std::wstring::npos)
+        if (path.find(TYPELIB) != std::wstring::npos)
         {
-            std::wstring tlbid = it->first.substr(TYPELIB.size(), GUID_LENGTH);
+            std::wstring tlbid = path.substr(TYPELIB.size(), GUID_LENGTH);
 
             if (currentTypeLib.tlbid != tlbid)
             {
@@ -275,16 +282,16 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
                 }
 
                 currentTypeLib.tlbid = tlbid;
-                currentTypeLib.version = it->first.substr(it->first.rfind(L'\\') + 1);
+                currentTypeLib.version = path.substr(path.rfind(L'\\') + 1);
             }
-            else if (it->first.find(L"HELPDIR") != std::wstring::npos)
+            else if (path.find(L"HELPDIR") != std::wstring::npos)
             {
                 currentTypeLib.helpdir = it->second.second;
             }
         }
-        if (it->first.find(INTERFACE) != std::wstring::npos)
+        if (path.find(INTERFACE) != std::wstring::npos)
         {
-            std::wstring iid = it->first.substr(INTERFACE.size(), GUID_LENGTH);
+            std::wstring iid = path.substr(INTERFACE.size(), GUID_LENGTH);
 
             if (currentInterface.iid != iid)
             {
@@ -300,15 +307,15 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             }
             else 
             {
-                if (it->first.find(L"ProxyStubClsid32") != std::wstring::npos)
+                if (path.find(L"PROXYSTUBCLSID32") != std::wstring::npos)
                 {
                     currentInterface.proxyStubClsid32 = it->second.second;
                 }
-                else if (it->first.find(L"TypeLib") != std::wstring::npos && it->second.first == L"(default)")
+                else if (path.find(L"TYPELIB") != std::wstring::npos && it->second.first == L"(default)")
                 {
                     currentInterface.tlbid = it->second.second;
                 }
-                else if (it->first.find(L"NumMethods") != std::wstring::npos && it->second.first == L"(default)")
+                else if (path.find(L"NUMMETHODS") != std::wstring::npos && it->second.first == L"(default)")
                 {
                     currentInterface.numMethods = it->second.second;
                 }

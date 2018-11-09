@@ -39,3 +39,4 @@ freely, subject to the following restrictions:
 #include <comdef.h>
 #include <fstream>
 #include <algorithm>
+#include <cwctype>

@@ -99,6 +99,7 @@ private:
     const std::wstring CLSID;
     const std::wstring INTERFACE;
     const std::wstring TYPELIB;
+    const std::wstring HKCU_SOFTWARE_CLASSES;
 
     const unsigned int GUID_LENGTH;
 };
