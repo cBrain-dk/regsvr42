@@ -23,7 +23,7 @@ Purpose: Common header file containing handy macros and definitions
 
 // Always compiler using Unicode.
 #ifndef UNICODE
-	#define UNICODE
+    #define UNICODE
 #endif
 
 // When using Unicode Windows functions, use Unicode C-Runtime functions too.

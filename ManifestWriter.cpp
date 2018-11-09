@@ -28,56 +28,56 @@ freely, subject to the following restrictions:
 
 /*
 
-<assembly> 	 	                Yes
-    manifestVersion 	        Yes
-<noInheritable> 		        No
-<assemblyIdentity> 		        Yes
-    type 	                    Yes
-    name 	                    Yes
-    language 	                No
-    processorArchitecture 	    No
-    version 	                Yes
-    publicKeyToken 	            No
-<dependency> 		            No
-<dependentAssembly> 		    No
-<file> 		                    No
-    name 	                    Yes
-    hashalg 	                No
-    hash 	                    No
-<comClass> 		                No
-    description 	            No
-    clsid 	                    Yes
-    threadingModel 	            No
-    tlbid 	                    No
-    progid 	                    No
-    miscStatus 	                No
-    miscStatusIcon 	            No
-    miscStatusContent 	        No
-    miscStatusDocPrint 	        No
-    miscStatusDocPrint 	        No
-<typelib> 		                No
-    tlbid 	                    Yes
-    version 	                Yes
-    helpdir 	                Yes
-    resourceid 	                No
-    flags 	                    No
-<comInterfaceExternalProxyStub>	No
-    iid 	                    Yes
-    baseInterface 	            No
-    numMethods 	                No
-    name 	                    No
-    tlbid 	                    No
-    proxyStubClsid32 	        No
-<comInterfaceProxyStub> 		No
-    iid 	                    Yes
-    name 	                    Yes
-    tlbid 	                    No
-    baseInterface 	            No
-    numMethods 	                No
-    proxyStubClsid32 	        No
-    threadingModel 	            No
-<windowClass> 		            No
-    versioned 	                No
+<assembly>                          Yes
+    manifestVersion             Yes
+<noInheritable>                 No
+<assemblyIdentity>                 Yes
+    type                         Yes
+    name                         Yes
+    language                     No
+    processorArchitecture         No
+    version                     Yes
+    publicKeyToken                 No
+<dependency>                     No
+<dependentAssembly>             No
+<file>                             No
+    name                         Yes
+    hashalg                     No
+    hash                         No
+<comClass>                         No
+    description                 No
+    clsid                         Yes
+    threadingModel                 No
+    tlbid                         No
+    progid                         No
+    miscStatus                     No
+    miscStatusIcon                 No
+    miscStatusContent             No
+    miscStatusDocPrint             No
+    miscStatusDocPrint             No
+<typelib>                         No
+    tlbid                         Yes
+    version                     Yes
+    helpdir                     Yes
+    resourceid                     No
+    flags                         No
+<comInterfaceExternalProxyStub>    No
+    iid                         Yes
+    baseInterface                 No
+    numMethods                     No
+    name                         No
+    tlbid                         No
+    proxyStubClsid32             No
+<comInterfaceProxyStub>         No
+    iid                         Yes
+    name                         Yes
+    tlbid                         No
+    baseInterface                 No
+    numMethods                     No
+    proxyStubClsid32             No
+    threadingModel                 No
+<windowClass>                     No
+    versioned                     No
 
 */
 
@@ -102,17 +102,17 @@ GUID_LENGTH(38) // {00000000-0000-0000-0000-000000000000}
 
 std::wstring DoubleBackSlash(const std::wstring& fileName)
 {
-	std::wstring newFileName = fileName;
+    std::wstring newFileName = fileName;
 
-	std::string::size_type pos = std::wstring::npos;
-	std::string::size_type next_pos = 0;
+    std::string::size_type pos = std::wstring::npos;
+    std::string::size_type next_pos = 0;
     while ((pos = newFileName.find(L"\\", next_pos)) != std::wstring::npos)
     {
         newFileName.replace(pos, 1, L"\\\\");
-		next_pos = pos + 2;
+        next_pos = pos + 2;
     }
 
-	return newFileName;
+    return newFileName;
 }
 
 void ManifestWriter::AddFileSection(const std::wstring& fileName, bool generateHash)

@@ -281,7 +281,7 @@ LONG WINAPI Interceptor::RegCreateKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResu
         PrintKeyStats(hKey, lpSubKey, __FUNCTIONW__);
     }
 
-	// just to have it initialized
+    // just to have it initialized
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
