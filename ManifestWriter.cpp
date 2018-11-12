@@ -147,7 +147,10 @@ void ManifestWriter::AddFileSection(const std::wstring& fileName, bool generateH
 void ManifestWriter::AddComClass( const ComClass& comClass )
 {
     m_data << L"    <comClass" << std::endl;
-    m_data << L"        description=\"" << comClass.description << L"\"" << std::endl;
+    if (!comClass.description.empty())
+    {
+        m_data << L"        description=\"" << comClass.description << L"\"" << std::endl;
+    }
     m_data << L"        clsid=\"" << comClass.clsid << "\"";
 
     if (!comClass.threadingModel.empty())
