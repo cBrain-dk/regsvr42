@@ -252,11 +252,11 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             
             ComClass &comClass = comClasses[clsid];
             comClass.clsid = clsid;
-            if (subPath.length() == 0 && it->second.first == L"(default)")
+            if (subPath.empty() && it->second.first == L"(default)")
             {
                 comClass.description = it->second.second;
             }
-            else if (subPath.compare(L"VERSIONINDEPENDENTPROGID") == 0 && it->second.first == L"(default)")
+            else if (subPath.compare(L"PROGID") == 0 && it->second.first == L"(default)")
             {
                 comClass.progid = it->second.second;
             }
@@ -275,7 +275,7 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             std::wstring tlbid = path.substr(TYPELIB.size(), GUID_LENGTH);
             std::wstring subPath = path.length() > TYPELIB.size() + GUID_LENGTH ? path.substr(TYPELIB.size() + GUID_LENGTH + 1) : L"";
 
-            if (subPath.length() == 0) // no version
+            if (subPath.empty()) // no version
                 continue;
             std::wstring version = subPath;
             size_t verEndPos = subPath.find(L'\\');
@@ -301,7 +301,7 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
 
             Interface &iface = interfaces[iid];
             iface.iid = iid;
-            if (subPath.length() == 0 && it->second.first == L"(default)")
+            if (subPath.empty() && it->second.first == L"(default)")
             {
                 iface.name = it->second.second;
             }
