@@ -1,5 +1,6 @@
 /************************************************************************/
-/* Copyright (c) 2008 Cristian Adam.
+/* Copyright (c) 2018 CBrain A/S. Version modified from original version by Cristian Adam
+ * Copyright (c) 2008 Cristian Adam.
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -212,16 +213,22 @@ void ManifestWriter::AddInterface(const Interface& intf)
     m_data << std::endl;
 }
 
+template<class _T1, class _T2>
+struct pair_hash {
+    inline std::size_t operator()(const std::pair<_T1, _T2> & v) const {
+        size_t h = std::hash<_T1>{}(v.first);
+        h ^= std::hash<_T2>{}(v.second) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
 
 void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedValues)
 {
     Interceptor::ValuesListType::const_iterator it = interceptedValues.begin();
 
-    ComClass currentComClass;
-    TypeLib currentTypeLib;
-    Interface currentInterface;
-
-    std::vector<Interface> interfacesList;
+    std::unordered_map<std::wstring, ComClass> comClasses;
+    std::unordered_map<std::pair<std::wstring, std::wstring>, TypeLib, pair_hash<std::wstring, std::wstring>> typeLibs;
+    std::unordered_map<std::wstring, Interface> interfaces;
 
     while (it != interceptedValues.end())
     {
@@ -231,123 +238,105 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
         {
             path = L"HKEY_CLASSES_ROOT\\" + path.substr(HKCU_SOFTWARE_CLASSES.length());
         }
-        if (path.find(CLSID) != std::wstring::npos)
+        if (path.compare(0, CLSID.length(), CLSID) == 0)
         {
             std::wstring clsid = path.substr(CLSID.size(), GUID_LENGTH);
+            std::wstring subPath = path.length() > CLSID.size() + GUID_LENGTH ? path.substr(CLSID.size() + GUID_LENGTH + 1) : L"";
 
-            if (path.find(L"\\INSTANCE\\{") != std::wstring::npos)
+            if (subPath.compare(0, 10, L"INSTANCE\\{") == 0)
             {
                 // Ignore the directshow source filter information
                 ++it;
                 continue;
             }
-
-            if (currentComClass.clsid != clsid)
+            
+            ComClass &comClass = comClasses[clsid];
+            comClass.clsid = clsid;
+            if (subPath.length() == 0 && it->second.first == L"(default)")
             {
-                if (!currentComClass.clsid.empty())
-                {
-                    AddComClass(currentComClass);
-                    // reset
-                    currentComClass = ComClass();
-                }
-                
-                currentComClass.clsid = clsid;
-                if (it->second.first == L"(default)")
-                {
-                    currentComClass.description = it->second.second;
-                }
+                comClass.description = it->second.second;
             }
-            else if (path.find(L"\\VERSIONINDEPENDENTPROGID") != std::wstring::npos && it->second.first == L"(default)")
+            else if (subPath.compare(L"VERSIONINDEPENDENTPROGID") == 0 && it->second.first == L"(default)")
             {
-                currentComClass.progid = it->second.second;
+                comClass.progid = it->second.second;
             }
-            else if (path.find(L"\\TYPELIB") != std::wstring::npos && it->second.first == L"(default)")
+            else if (subPath.compare(L"TYPELIB") == 0 && it->second.first == L"(default)")
             {
-                currentComClass.tlbid = it->second.second;
+                comClass.tlbid = it->second.second;
             }
-            else if (it->second.first == L"ThreadingModel")
+            else if (subPath.compare(L"INPROCSERVER32") == 0 && it->second.first == L"ThreadingModel")
             {
-                currentComClass.threadingModel = it->second.second;
+                comClass.threadingModel = it->second.second;
             }
         }
 
-        if (path.find(TYPELIB) != std::wstring::npos)
+        if (path.compare(0, TYPELIB.length(), TYPELIB) == 0)
         {
             std::wstring tlbid = path.substr(TYPELIB.size(), GUID_LENGTH);
+            std::wstring subPath = path.length() > TYPELIB.size() + GUID_LENGTH ? path.substr(TYPELIB.size() + GUID_LENGTH + 1) : L"";
 
-            if (currentTypeLib.tlbid != tlbid)
+            if (subPath.length() == 0) // no version
+                continue;
+            std::wstring version = subPath;
+            size_t verEndPos = subPath.find(L'\\');
+            std::wstring versionSubPath;
+            if (verEndPos != std::wstring::npos)
             {
-                if (!currentTypeLib.tlbid.empty())
-                {
-                    AddTypeLibrary(currentTypeLib);
-                    // reset
-                    currentTypeLib = TypeLib();
-                }
-
-                currentTypeLib.tlbid = tlbid;
-                currentTypeLib.version = path.substr(path.rfind(L'\\') + 1);
+                versionSubPath = version.substr(verEndPos + 1);
+                version.resize(verEndPos);
             }
-            else if (path.find(L"HELPDIR") != std::wstring::npos)
+
+            TypeLib &typeLib = typeLibs[{ tlbid, version }];
+            typeLib.tlbid = tlbid;
+            typeLib.version = version;
+            if (versionSubPath.compare(L"HELPDIR") != std::wstring::npos && it->second.first == L"(default)")
             {
-                currentTypeLib.helpdir = it->second.second;
+                typeLib.helpdir = it->second.second;
             }
         }
-        if (path.find(INTERFACE) != std::wstring::npos)
+        if (path.compare(0, INTERFACE.length(), INTERFACE) == 0)
         {
             std::wstring iid = path.substr(INTERFACE.size(), GUID_LENGTH);
+            std::wstring subPath = path.length() > INTERFACE.size() + GUID_LENGTH ? path.substr(INTERFACE.size() + GUID_LENGTH + 1) : L"";
 
-            if (currentInterface.iid != iid)
+            Interface &iface = interfaces[iid];
+            iface.iid = iid;
+            if (subPath.length() == 0 && it->second.first == L"(default)")
             {
-                if (!currentInterface.iid.empty())
-                {
-                    interfacesList.push_back(currentInterface);
-                    // reset
-                    currentInterface = Interface();
-                }
-
-                currentInterface.iid = iid;
-                currentInterface.name = it->second.second;
+                iface.name = it->second.second;
             }
-            else 
+            if (subPath.compare(L"PROXYSTUBCLSID32") == 0 && it->second.first == L"(default)")
             {
-                if (path.find(L"PROXYSTUBCLSID32") != std::wstring::npos)
-                {
-                    currentInterface.proxyStubClsid32 = it->second.second;
-                }
-                else if (path.find(L"TYPELIB") != std::wstring::npos && it->second.first == L"(default)")
-                {
-                    currentInterface.tlbid = it->second.second;
-                }
-                else if (path.find(L"NUMMETHODS") != std::wstring::npos && it->second.first == L"(default)")
-                {
-                    currentInterface.numMethods = it->second.second;
-                }
+                iface.proxyStubClsid32 = it->second.second;
+            }
+            else if (subPath.compare(L"TYPELIB") == 0 && it->second.first == L"(default)")
+            {
+                iface.tlbid = it->second.second;
+            }
+            else if (subPath.compare(L"NUMMETHODS") == 0 && it->second.first == L"(default)")
+            {
+                iface.numMethods = it->second.second;
             }
         }
 
         ++it;
     }
 
-    if (!currentComClass.clsid.empty())
+    for (auto ccIt = comClasses.begin(); ccIt != comClasses.end(); ccIt++)
     {
-        AddComClass(currentComClass);
+        AddComClass(ccIt->second);
     }
 
-    if (!currentTypeLib.tlbid.empty())
+    for (auto tlIt = typeLibs.begin(); tlIt != typeLibs.end(); tlIt++)
     {
-        AddTypeLibrary(currentTypeLib);
-    }
-
-    if (!currentInterface.iid.empty())
-    {
-        interfacesList.push_back(currentInterface);
+        AddTypeLibrary(tlIt->second);
     }
 
     AddEndFileSection();
 
-    for (unsigned int i = 0; i < interfacesList.size(); ++i)
+    for (auto ifIt = interfaces.begin(); ifIt != interfaces.end(); ifIt++)
     {
-        AddInterface(interfacesList[i]);
+        AddInterface(ifIt->second);
     }
 }
 

@@ -1,5 +1,6 @@
 /************************************************************************/
-/* Copyright (c) 2008 Cristian Adam.
+/* Copyright (c) 2018 CBrain A/S. Version modified from original version by Cristian Adam
+ * Copyright (c) 2008 Cristian Adam.
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -40,3 +41,4 @@ freely, subject to the following restrictions:
 #include <fstream>
 #include <algorithm>
 #include <cwctype>
+#include <unordered_map>
