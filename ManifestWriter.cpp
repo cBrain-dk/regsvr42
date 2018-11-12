@@ -289,7 +289,7 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             TypeLib &typeLib = typeLibs[{ tlbid, version }];
             typeLib.tlbid = tlbid;
             typeLib.version = version;
-            if (versionSubPath.compare(L"HELPDIR") != std::wstring::npos && it->second.first == L"(default)")
+            if (versionSubPath.compare(L"HELPDIR") == 0 && it->second.first == L"(default)")
             {
                 typeLib.helpdir = it->second.second;
             }
