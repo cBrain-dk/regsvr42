@@ -1,5 +1,6 @@
 /************************************************************************/
-/* Copyright (c) 2008 Cristian Adam.
+/* Copyright (c) 2018 CBrain A/S. Version modified from original version by Cristian Adam
+ * Copyright (c) 2008 Cristian Adam.
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -27,6 +28,7 @@ freely, subject to the following restrictions:
 #define MANIFEST_WRITER_H
 
 #include "Interceptor.h"
+#include "regsvr42.h"
 
 // commdlg.h is silly and defines INTERFACE...
 #undef INTERFACE
@@ -82,7 +84,7 @@ public:
     void ProcessData(const Interceptor::ValuesListType& interceptedValues);
     void WriteToFile(const std::wstring& outputManifestFile);
 
-    void AddFileSection(const std::wstring& fileName, bool generateHash);
+    void AddFileSection(const std::wstring& fileName, DigestAlgo digestAlgo);
 
     static void WriteClientManifest(const std::wstring& clientFileName, const std::vector<DependencyInfo>& dependencyList);
 
@@ -92,6 +94,8 @@ private:
     void AddTypeLibrary(const TypeLib& typeLib);
     void AddInterface(const Interface& intf);
 
+    std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName);
+    void AddSha256Hash(const std::wstring& fileName);
     void AddEndFileSection();
 
     std::wostringstream m_data;

@@ -31,6 +31,11 @@ freely, subject to the following restrictions:
 
 #include "CmnHdr.h"
 
+#include <windows.h>
+#include <bcrypt.h>
+#include <wincrypt.h>
+#include <winternl.h>
+
 #include <memory>
 #include <map>
 #include <iostream>
