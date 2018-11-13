@@ -102,21 +102,6 @@ GUID_LENGTH(38) // {00000000-0000-0000-0000-000000000000}
     m_data << std::endl;
 }
 
-std::wstring DoubleBackSlash(const std::wstring& fileName)
-{
-    std::wstring newFileName = fileName;
-
-    std::string::size_type pos = std::wstring::npos;
-    std::string::size_type next_pos = 0;
-    while ((pos = newFileName.find(L"\\", next_pos)) != std::wstring::npos)
-    {
-        newFileName.replace(pos, 1, L"\\\\");
-        next_pos = pos + 2;
-    }
-
-    return newFileName;
-}
-
 struct CBCryptAlgHandle
 {
     BCRYPT_ALG_HANDLE h = 0;
@@ -234,7 +219,19 @@ void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
 
 void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo digestAlgos)
 {
-    m_data << L"<file xmlns=\"urn:schemas-microsoft-com:asm.v1\" name=\"" << DoubleBackSlash(fileName) << L"\"";
+    size_t lastBackslash = fileName.rfind('\\');
+    size_t lastSlash = fileName.rfind('/');
+    std::wstring namePart;
+    if (lastBackslash != std::wstring::npos && lastSlash != std::wstring::npos)
+        namePart = fileName.substr(max(lastBackslash, lastSlash) + 1);
+    else if (lastBackslash != std::wstring::npos)
+        namePart = fileName.substr(lastBackslash + 1);
+    else if (lastSlash != std::wstring::npos)
+        namePart = fileName.substr(lastSlash + 1);
+    else
+        namePart = fileName;
+
+    m_data << L"<file xmlns=\"urn:schemas-microsoft-com:asm.v1\" name=\"" << namePart << L"\"";
 
     bool inFileTagBody = false;
     if (digestAlgos & (DigestAlgo::size | DigestAlgo::sha256))
