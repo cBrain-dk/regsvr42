@@ -53,9 +53,6 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Toolhelp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="regsvr42.h">
       <Filter>Header Files</Filter>
     </ClInclude>

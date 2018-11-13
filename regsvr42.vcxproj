@@ -141,7 +141,6 @@
     <ClInclude Include="ManifestWriter.h" />
     <ClInclude Include="SHA1.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Toolhelp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

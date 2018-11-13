@@ -4,13 +4,8 @@ Notices: Copyright (c) 2008 Jeffrey Richter & Christophe Nasarre
 ******************************************************************************/
 
 #include "stdafx.h"
-#include "CmnHdr.h"
-#include <ImageHlp.h>
-#pragma comment(lib, "ImageHlp")
-
 #include "APIHook.h"
 #include "mhook.h"
-#include "Toolhelp.h"
 #include <StrSafe.h>
 
 
