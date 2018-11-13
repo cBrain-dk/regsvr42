@@ -25,7 +25,6 @@ freely, subject to the following restrictions:
 
 #include "stdafx.h"
 #include "ManifestWriter.h"
-#include "SHA1.h"
 
 /*
 
@@ -138,14 +137,14 @@ struct CBCryptHashHandle
     }
 };
 
-std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName)
+std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fileName, LPCWSTR algId)
 {
     CBCryptAlgHandle algHandle;
-    int status = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
+    int status = BCryptOpenAlgorithmProvider(&algHandle, algId, nullptr, 0);
     if (!NT_SUCCESS(status))
     {
         std::wcout << "Failed getting SHA256 provider: BCryptOpenAlgorithmProvider failed with " << status << std::endl;
-        return std::vector<char>();
+        return std::vector<UCHAR>();
     }
     DWORD hashObjLen;
     ULONG dummy;
@@ -153,14 +152,14 @@ std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName)
     if (!NT_SUCCESS(status))
     {
         std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_OBJECT_LENGTH, ...) failed with " << status << std::endl;
-        return std::vector<char>();
+        return std::vector<UCHAR>();
     }
     DWORD hashLen;
     status = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hashLen), sizeof(hashLen), &dummy, 0);
     if (!NT_SUCCESS(status))
     {
         std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_HASH_LENGTH, ...) failed with " << status << std::endl;
-        return std::vector<char>();
+        return std::vector<UCHAR>();
     }
     std::vector<unsigned char> hashObj(hashObjLen, 0);
     CBCryptHashHandle hashHandle;
@@ -168,7 +167,7 @@ std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName)
     if (!NT_SUCCESS(status))
     {
         std::wcout << "Failed creating SHA256 hash: BCryptCreateHash failed with " << status << std::endl;
-        return std::vector<char>();
+        return std::vector<UCHAR>();
     }
 
     std::vector<char> buf(65536, 0);
@@ -181,29 +180,29 @@ std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName)
         if (!NT_SUCCESS(status))
         {
             std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
-            return std::vector<char>();
+            return std::vector<UCHAR>();
         }
     }
 
-    std::vector<char> hash(hashLen, 0);
-    status = BCryptFinishHash(hashHandle, reinterpret_cast<PUCHAR>(hash.data()), hashLen, 0);
+    std::vector<UCHAR> hash(hashLen, 0);
+    status = BCryptFinishHash(hashHandle, hash.data(), hashLen, 0);
     if (!NT_SUCCESS(status))
     {
         std::wcout << "Failed computing SHA256 hash: BCryptFinishHash failed with " << status << std::endl;
-        return std::vector<char>();
+        return std::vector<UCHAR>();
     }
     return hash;
 }
 
 void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
 {
-    std::vector<char> hash(GetSha256Hash(fileName));
+    std::vector<UCHAR> hash(GetBCryptHash(fileName, BCRYPT_SHA256_ALGORITHM));
     if (hash.empty())
         return;
     std::wstring base64Hash;
     base64Hash.resize(44, 0);
     DWORD base64HashLen = base64Hash.size() + 1;
-    if (!CryptBinaryToString(reinterpret_cast<BYTE*>(hash.data()), hash.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &base64Hash[0], &base64HashLen))
+    if (!CryptBinaryToString(hash.data(), hash.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &base64Hash[0], &base64HashLen))
     {
         std::wcout << "Failed converting SHA256 hash to base64" << std::endl;
         return;
@@ -215,6 +214,18 @@ void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
     m_data << L"        <dsig:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha256\" />" << std::endl;
     m_data << L"        <dsig:DigestValue>" << base64Hash << L"</dsig:DigestValue>" << std::endl;
     m_data << L"    </asmv2:hash>" << std::endl;
+}
+
+constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+std::wstring hexStr(unsigned char *data, int len)
+{
+  std::wstring s(len * 2, 0);
+  for (int i = 0; i < len; ++i) {
+    s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+    s[2 * i + 1] = hexmap[data[i] & 0x0F];
+  }
+  return s;
 }
 
 void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo digestAlgos)
@@ -246,18 +257,11 @@ void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo dig
     }
     if (digestAlgos & DigestAlgo::sha1)
     {
-        CSHA1 sha1;
-
-        sha1.Reset();
-        sha1.HashFile(fileName.c_str());
-        sha1.Final();
-
-        std::wstring hash;
-        hash.resize(40);
-
-        sha1.ReportHash(&*hash.begin());
-
-        m_data << std::endl << "    hash=\"" << hash << L"\" hashalg=\"SHA1\"";
+        std::vector<unsigned char> hash(GetBCryptHash(fileName, BCRYPT_SHA1_ALGORITHM));
+        if (!hash.empty())
+        {
+            m_data << std::endl << "    hash=\"" << hexStr(hash.data(), hash.size()) << L"\" hashalg=\"SHA1\"";
+        }
     }
     if (digestAlgos & DigestAlgo::sha256)
     {

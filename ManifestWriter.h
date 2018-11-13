@@ -94,7 +94,7 @@ private:
     void AddTypeLibrary(const TypeLib& typeLib);
     void AddInterface(const Interface& intf);
 
-    std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName);
+    std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fileName, LPCWSTR algId);
     void AddSha256Hash(const std::wstring& fileName);
     void AddEndFileSection();
 

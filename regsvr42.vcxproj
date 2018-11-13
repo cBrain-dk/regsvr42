@@ -130,7 +130,6 @@
     <ClCompile Include="interceptor.cpp" />
     <ClCompile Include="ManifestWriter.cpp" />
     <ClCompile Include="regsvr42.cpp" />
-    <ClCompile Include="SHA1.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -139,7 +138,6 @@
     <ClInclude Include="regsvr42.h" />
     <ClInclude Include="Interceptor.h" />
     <ClInclude Include="ManifestWriter.h" />
-    <ClInclude Include="SHA1.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
