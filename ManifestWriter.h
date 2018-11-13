@@ -81,7 +81,7 @@ class ManifestWriter
 public:
     ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion);
 
-    void ProcessData(const Interceptor::ValuesListType& interceptedValues);
+    void ProcessData(const std::wstring& fileName, const Interceptor::ValuesListType& interceptedValues);
     void WriteToFile(const std::wstring& outputManifestFile);
 
     void AddFileSection(const std::wstring& fileName, DigestAlgo digestAlgo);
@@ -97,6 +97,8 @@ private:
     std::vector<char> ManifestWriter::GetSha256Hash(const std::wstring& fileName);
     void AddSha256Hash(const std::wstring& fileName);
     void AddEndFileSection();
+
+    std::wstring GetRelativePath(const std::wstring& relFrom, const std::wstring& target);
 
     std::wostringstream m_data;
 

@@ -340,6 +340,23 @@ void ManifestWriter::AddInterface(const Interface& intf)
     m_data << std::endl;
 }
 
+std::wstring ManifestWriter::GetRelativePath(const std::wstring& relFrom, const std::wstring& target)
+{
+    std::wstring ret(MAX_PATH, 0);
+    if (!PathRelativePathToW(
+        &ret[0],
+        relFrom.c_str(),
+        FILE_ATTRIBUTE_NORMAL,
+        target.c_str(),
+        PathIsDirectoryW(target.c_str()) ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL))
+    {
+        std::wcout << "Getting relative path to \"" << target << "\" failed." << std::endl;
+        return target;
+    }
+    ret.resize(wcslen(ret.c_str()));
+    return ret;
+}
+
 template<class _T1, class _T2>
 struct pair_hash {
     inline std::size_t operator()(const std::pair<_T1, _T2> & v) const {
@@ -349,7 +366,7 @@ struct pair_hash {
     }
 };
 
-void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedValues)
+void ManifestWriter::ProcessData(const std::wstring& fileName, const Interceptor::ValuesListType& interceptedValues)
 {
     Interceptor::ValuesListType::const_iterator it = interceptedValues.begin();
 
@@ -418,7 +435,7 @@ void ManifestWriter::ProcessData(const Interceptor::ValuesListType& interceptedV
             typeLib.version = version;
             if (versionSubPath.compare(L"HELPDIR") == 0 && it->second.first == L"(default)")
             {
-                typeLib.helpdir = it->second.second;
+                typeLib.helpdir = GetRelativePath(fileName, it->second.second);
             }
         }
         if (path.compare(0, INTERFACE.length(), INTERFACE) == 0)
