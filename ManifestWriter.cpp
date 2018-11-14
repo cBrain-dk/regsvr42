@@ -137,7 +137,28 @@ struct CBCryptHashHandle
     }
 };
 
-std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fileName, LPCWSTR algId)
+struct DigestFunctionData
+{
+    CBCryptHashHandle &hashHandle;
+    NTSTATUS status;
+};
+
+BOOL WINAPI DigestFunction(
+    DIGEST_HANDLE refdata,
+    PBYTE pData,
+    DWORD dwLength
+)
+{
+    DigestFunctionData *data = reinterpret_cast<DigestFunctionData*>(refdata);
+    data->status = BCryptHashData(data->hashHandle, pData, dwLength, 0);
+    if (!NT_SUCCESS(data->status))
+    {
+        std::wcout << "Failed creating SHA256 hash: BCryptCreateHash failed with " << data->status << std::endl;
+    }
+    return NT_SUCCESS(data->status);
+}
+
+std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fileName, LPCWSTR algId, bool useImageGetDigestStream)
 {
     CBCryptAlgHandle algHandle;
     int status = BCryptOpenAlgorithmProvider(&algHandle, algId, nullptr, 0);
@@ -170,17 +191,36 @@ std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fil
         return std::vector<UCHAR>();
     }
 
-    std::vector<char> buf(65536, 0);
-    std::ifstream fsIn(fileName, std::ios::binary);
-    while (fsIn.good())
+    FILE* f = _wfopen(fileName.c_str(), L"rb");
+    if (useImageGetDigestStream)
     {
-        fsIn.read(buf.data(), buf.size());
-        std::streamsize s = fsIn.gcount();
-        BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
-        if (!NT_SUCCESS(status))
+        DigestFunctionData data = { hashHandle = hashHandle, status = 0 };
+        if (!ImageGetDigestStream(
+            reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(f))),
+            CERT_PE_IMAGE_DIGEST_ALL_IMPORT_INFO,
+            DigestFunction,
+            &data))
         {
-            std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
-            return std::vector<UCHAR>();
+            if (NT_SUCCESS(data.status))
+            {
+                std::wcout << "Failed creating SHA256 hash: ImageGetDigestStream failed with " << GetLastError() << std::endl;
+            }
+        }
+    }
+    else
+    {
+        std::vector<char> buf(65536, 0);
+        std::ifstream fsIn(f);
+        while (fsIn.good())
+        {
+            fsIn.read(buf.data(), buf.size());
+            std::streamsize s = fsIn.gcount();
+            BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
+            if (!NT_SUCCESS(status))
+            {
+                std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
+                return std::vector<UCHAR>();
+            }
         }
     }
 
@@ -196,7 +236,7 @@ std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fil
 
 void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
 {
-    std::vector<UCHAR> hash(GetBCryptHash(fileName, BCRYPT_SHA256_ALGORITHM));
+    std::vector<UCHAR> hash(GetBCryptHash(fileName, BCRYPT_SHA256_ALGORITHM, false));
     if (hash.empty())
         return;
     std::wstring base64Hash;
@@ -257,7 +297,7 @@ void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo dig
     }
     if (digestAlgos & DigestAlgo::sha1)
     {
-        std::vector<unsigned char> hash(GetBCryptHash(fileName, BCRYPT_SHA1_ALGORITHM));
+        std::vector<unsigned char> hash(GetBCryptHash(fileName, BCRYPT_SHA1_ALGORITHM, true));
         if (!hash.empty())
         {
             m_data << std::endl << "    hash=\"" << hexStr(hash.data(), hash.size()) << L"\" hashalg=\"SHA1\"";
@@ -346,10 +386,18 @@ void ManifestWriter::AddInterface(const Interface& intf)
 
 std::wstring ManifestWriter::GetRelativePath(const std::wstring& relFrom, const std::wstring& target)
 {
+    std::wstring absFrom(MAXSHORT, '\0');
+    DWORD absFromSize = GetFullPathName(relFrom.c_str(), absFrom.size(), &absFrom[0], nullptr);
+    if (!absFromSize)
+    {
+        std::wcout << "Getting absolute path to \"" << relFrom << "\" failed." << std::endl;
+        return target;
+    }
+    absFrom.resize(absFromSize);
     std::wstring ret(MAX_PATH, 0);
     if (!PathRelativePathToW(
         &ret[0],
-        relFrom.c_str(),
+        absFrom.c_str(),
         FILE_ATTRIBUTE_NORMAL,
         target.c_str(),
         PathIsDirectoryW(target.c_str()) ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL))

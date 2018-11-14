@@ -36,6 +36,7 @@ freely, subject to the following restrictions:
 #include <bcrypt.h>
 #include <wincrypt.h>
 #include <winternl.h>
+#include <imagehlp.h>
 
 #include <memory>
 #include <map>
@@ -48,3 +49,5 @@ freely, subject to the following restrictions:
 #include <algorithm>
 #include <cwctype>
 #include <unordered_map>
+
+#include <io.h>

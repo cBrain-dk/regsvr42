@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "regsvr42", "regsvr42.vcxproj", "{D368AEF6-DF61-453C-AC9E-24D4E3BEE216}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9AF4E83D-3670-44C8-84B9-54FFD4AFFF21} = {9AF4E83D-3670-44C8-84B9-54FFD4AFFF21}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmhook", "libmhook\libmhook.vcxproj", "{9AF4E83D-3670-44C8-84B9-54FFD4AFFF21}"
 EndProject
