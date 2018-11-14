@@ -1,5 +1,6 @@
 /************************************************************************/
-/* Copyright (c) 2008 Cristian Adam.
+/* Copyright (c) 2018 CBrain A/S. Version modified from original version by Cristian Adam
+ * Copyright (c) 2008 Cristian Adam.
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -124,8 +125,8 @@ public:
     template <typename T>
     static void AddValueToList(HKEY hKey, T* valueName, DWORD type, const BYTE* pData, DWORD dataLength);
 
-    static std::map<HKEY, std::wstring> m_stdKeys;
-    static std::map<HKEY, std::wstring> m_userKeys;
+    static std::map<uint32_t, std::wstring> m_stdKeys;
+    static std::map<uint32_t, std::wstring> m_userKeys;
 
     static std::map<DWORD, std::wstring> m_regTypes;
 

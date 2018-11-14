@@ -1,5 +1,6 @@
 /************************************************************************/
-/* Copyright (c) 2008 Cristian Adam.
+/* Copyright (c) 2018 CBrain A/S. Version modified from original version by Cristian Adam
+ * Copyright (c) 2008 Cristian Adam.
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -47,8 +48,8 @@ std::auto_ptr<CAPIHook> Interceptor::m_RegOpenKeyExW;
 
 std::auto_ptr<CAPIHook> Interceptor::m_RegCloseKey;
 
-std::map<HKEY, std::wstring> Interceptor::m_stdKeys;
-std::map<HKEY, std::wstring> Interceptor::m_userKeys;
+std::map<uint32_t, std::wstring> Interceptor::m_stdKeys;
+std::map<uint32_t, std::wstring> Interceptor::m_userKeys;
 std::map<DWORD, std::wstring> Interceptor::m_regTypes;
 bool Interceptor::m_doTrace = false;
 Interceptor::ValuesListType Interceptor::m_valuesList;
@@ -129,6 +130,15 @@ typedef LONG (WINAPI *PFNREGOPENKEYEXW)(HKEY hKey,
 
 typedef LONG (WINAPI *PFNREGCLOSEKEY)(HKEY hKey);
 
+/* Handles on Windows are actually always 32-bit.
+   There is some inconsistency in whether COM libraries zero-extends or sign-extends the special keys.
+   The easiest solution is to just truncate everything down to 32-bit as that is how Windows handles
+   it internally anyways.*/
+inline uint32_t hkey32(HKEY key)
+{
+    return (uint32_t)(UINT_PTR)key;
+}
+
 Interceptor::Interceptor()
 {
     m_valuesList.clear();
@@ -136,15 +146,15 @@ Interceptor::Interceptor()
     m_stdKeys.clear();
     m_regTypes.clear();
 
-    m_stdKeys.insert(std::make_pair(HKEY_CLASSES_ROOT, L"HKEY_CLASSES_ROOT"));
-    m_stdKeys.insert(std::make_pair(HKEY_CURRENT_USER, L"HKEY_CURRENT_USER"));
-    m_stdKeys.insert(std::make_pair(HKEY_LOCAL_MACHINE, L"HKEY_LOCAL_MACHINE"));
-    m_stdKeys.insert(std::make_pair(HKEY_USERS, L"HKEY_USERS"));
-    m_stdKeys.insert(std::make_pair(HKEY_PERFORMANCE_DATA, L"HKEY_PERFORMANCE_DATA"));
-    m_stdKeys.insert(std::make_pair(HKEY_PERFORMANCE_TEXT, L"HKEY_PERFORMANCE_TEXT"));
-    m_stdKeys.insert(std::make_pair(HKEY_PERFORMANCE_NLSTEXT, L"HKEY_PERFORMANCE_NLSTEXT"));
-    m_stdKeys.insert(std::make_pair(HKEY_CURRENT_CONFIG, L"HKEY_CURRENT_CONFIG"));
-    m_stdKeys.insert(std::make_pair(HKEY_DYN_DATA, L"HKEY_DYN_DATA"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_CLASSES_ROOT), L"HKEY_CLASSES_ROOT"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_CURRENT_USER), L"HKEY_CURRENT_USER"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_LOCAL_MACHINE), L"HKEY_LOCAL_MACHINE"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_USERS), L"HKEY_USERS"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_PERFORMANCE_DATA), L"HKEY_PERFORMANCE_DATA"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_PERFORMANCE_TEXT), L"HKEY_PERFORMANCE_TEXT"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_PERFORMANCE_NLSTEXT), L"HKEY_PERFORMANCE_NLSTEXT"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_CURRENT_CONFIG), L"HKEY_CURRENT_CONFIG"));
+    m_stdKeys.insert(std::make_pair(hkey32(HKEY_DYN_DATA), L"HKEY_DYN_DATA"));
 
     m_regTypes.insert(std::make_pair(REG_NONE, L"REG_NONE"));
     m_regTypes.insert(std::make_pair(REG_SZ, L"REG_SZ"));
@@ -234,13 +244,13 @@ void Interceptor::InsertSubkeyIntoUserKeyMap(HKEY parentKey, HKEY subKey, T* sub
     if (subKeyName)
     {
         std::wostringstream wos;
-        if (m_stdKeys.find(parentKey) != m_stdKeys.end())
+        if (m_stdKeys.find(hkey32(parentKey)) != m_stdKeys.end())
         {
-            wos << m_stdKeys[parentKey] << L"\\" << subKeyName;      
+            wos << m_stdKeys[hkey32(parentKey)] << L"\\" << subKeyName;      
         }
-        else if (m_userKeys.find(parentKey) != m_userKeys.end())
+        else if (m_userKeys.find(hkey32(parentKey)) != m_userKeys.end())
         {
-            wos << m_userKeys[parentKey] << L"\\" << subKeyName;      
+            wos << m_userKeys[hkey32(parentKey)] << L"\\" << subKeyName;      
         }
 
         if (m_doTrace && fromCreateKey)
@@ -248,7 +258,7 @@ void Interceptor::InsertSubkeyIntoUserKeyMap(HKEY parentKey, HKEY subKey, T* sub
             std::wcout << funcName << L": Adding user key: " << wos.str() << L", 0x" << std::hex << subKey << std::endl;
         }
 
-        m_userKeys.insert(std::make_pair(subKey, wos.str()));
+        m_userKeys.insert(std::make_pair(hkey32(subKey), wos.str()));
     }
 }
 
@@ -257,14 +267,14 @@ void Interceptor::PrintKeyStats(HKEY hKey, T* keyName, wchar_t* funcName)
 {
     if (keyName)
     {
-        if (m_stdKeys.find(hKey) != m_stdKeys.end())
+        if (m_stdKeys.find(hkey32(hKey)) != m_stdKeys.end())
         {
-            std::wcout << funcName << L" [" << std::hex << hKey << L"]: " << m_stdKeys[hKey].c_str() << L"\\" 
+            std::wcout << funcName << L" [" << std::hex << hKey << L"]: " << m_stdKeys[hkey32(hKey)].c_str() << L"\\" 
                        << keyName << std::endl;
         }
-        else if (m_userKeys.find(hKey) != m_userKeys.end())
+        else if (m_userKeys.find(hkey32(hKey)) != m_userKeys.end())
         {
-            std::wcout << funcName << L" [" << std::hex << hKey << L"]: " << m_userKeys[hKey].c_str() << L"\\" 
+            std::wcout << funcName << L" [" << std::hex << hKey << L"]: " << m_userKeys[hkey32(hKey)].c_str() << L"\\" 
                        << keyName << std::endl;
         }
         else
@@ -565,9 +575,9 @@ LONG WINAPI Interceptor::RegCloseKey(HKEY hKey)
 
     if (result == ERROR_SUCCESS)
     {
-        if (m_userKeys.find(hKey) != m_userKeys.end())
+        if (m_userKeys.find(hkey32(hKey)) != m_userKeys.end())
         {
-            m_userKeys.erase(hKey);
+            m_userKeys.erase(hkey32(hKey));
         }
     }
 
@@ -618,5 +628,5 @@ void Interceptor::AddValueToList(HKEY hKey, T* valueName, DWORD type, const BYTE
         wideValueName << L"(default)";
     }
 
-    m_valuesList.push_back(std::make_pair(m_userKeys[hKey], std::make_pair(wideValueName.str(), wideData.str())));
+    m_valuesList.push_back(std::make_pair(m_userKeys[hkey32(hKey)], std::make_pair(wideValueName.str(), wideData.str())));
 }
