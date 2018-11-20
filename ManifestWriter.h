@@ -79,7 +79,7 @@ struct DependencyInfo
 class ManifestWriter
 {
 public:
-    ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion);
+    ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion, bool addArch);
 
     void ProcessData(const std::wstring& fileName, const Interceptor::ValuesListType& interceptedValues);
     void WriteToFile(const std::wstring& outputManifestFile);

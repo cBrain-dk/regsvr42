@@ -81,7 +81,7 @@ freely, subject to the following restrictions:
 
 */
 
-ManifestWriter::ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion):
+ManifestWriter::ManifestWriter(const std::wstring& assemblyName, const std::wstring& assemblyVersion, bool addArch):
 CLSID(L"HKEY_CLASSES_ROOT\\CLSID\\"),
 INTERFACE(L"HKEY_CLASSES_ROOT\\INTERFACE\\"),
 TYPELIB(L"HKEY_CLASSES_ROOT\\TYPELIB\\"),
@@ -96,8 +96,20 @@ GUID_LENGTH(38) // {00000000-0000-0000-0000-000000000000}
     m_data << L"<assemblyIdentity" << std::endl;
     m_data << L"    type=\"win32\"" << std::endl;
     m_data << L"    name=\"" << assemblyName << L"\"" << std::endl;
-    m_data << L"    version=\"" << assemblyVersion << L"\" />" << std::endl;
-
+    m_data << L"    version=\"" << assemblyVersion << L"\"";
+    if (addArch)
+    {
+        m_data << std::endl;
+#ifdef WIN64
+        m_data << L"    processorArchitecture=\"amd64\" />" << std::endl;
+#else
+        m_data << L"    processorArchitecture=\"x86\" />" << std::endl;
+#endif
+    }
+    else
+    {
+        m_data << L" />" << std::endl;
+    }
     m_data << std::endl;
 }
 
