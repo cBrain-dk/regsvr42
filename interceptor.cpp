@@ -28,26 +28,6 @@ freely, subject to the following restrictions:
 #include "Interceptor.h"
 #include <iostream>
 
-std::auto_ptr<CAPIHook> Interceptor::m_RegCreateKeyA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegCreateKeyW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegCreateKeyExA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegCreateKeyExW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegSetValueA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegSetValueW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegSetValueExA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegSetValueExW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegOpenKeyA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegOpenKeyW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegOpenKeyExA;
-std::auto_ptr<CAPIHook> Interceptor::m_RegOpenKeyExW;
-
-std::auto_ptr<CAPIHook> Interceptor::m_RegCloseKey;
-
 std::map<uint32_t, std::wstring> Interceptor::m_stdKeys;
 std::map<uint32_t, std::wstring> Interceptor::m_userKeys;
 std::map<DWORD, std::wstring> Interceptor::m_regTypes;
@@ -130,6 +110,27 @@ typedef LONG (WINAPI *PFNREGOPENKEYEXW)(HKEY hKey,
 
 typedef LONG (WINAPI *PFNREGCLOSEKEY)(HKEY hKey);
 
+
+static std::optional<MHookFunc<PFNREGCREATEKEYA>> m_RegCreateKeyA;
+static std::optional<MHookFunc<PFNREGCREATEKEYW>> m_RegCreateKeyW;
+
+static std::optional<MHookFunc<PFNREGCREATEKEYEXA>> m_RegCreateKeyExA;
+static std::optional<MHookFunc<PFNREGCREATEKEYEXW>> m_RegCreateKeyExW;
+
+static std::optional<MHookFunc<PFNREGSETVALUEA>> m_RegSetValueA;
+static std::optional<MHookFunc<PFNREGSETVALUEW>> m_RegSetValueW;
+
+static std::optional<MHookFunc<PFNREGSETVALUEEXA>> m_RegSetValueExA;
+static std::optional<MHookFunc<PFNREGSETVALUEEXW>> m_RegSetValueExW;
+
+static std::optional<MHookFunc<PFNREGOPENKEYA>> m_RegOpenKeyA;
+static std::optional<MHookFunc<PFNREGOPENKEYW>> m_RegOpenKeyW;
+
+static std::optional<MHookFunc<PFNREGOPENKEYEXA>> m_RegOpenKeyExA;
+static std::optional<MHookFunc<PFNREGOPENKEYEXW>> m_RegOpenKeyExW;
+
+static std::optional<MHookFunc<PFNREGCLOSEKEY>> m_RegCloseKey;
+
 /* Handles on Windows are actually always 32-bit.
    There is some inconsistency in whether COM libraries zero-extends or sign-extends the special keys.
    The easiest solution is to just truncate everything down to 32-bit as that is how Windows handles
@@ -171,69 +172,69 @@ Interceptor::Interceptor()
     m_regTypes.insert(std::make_pair(REG_QWORD, L"REG_QWORD"));
     m_regTypes.insert(std::make_pair(REG_QWORD_LITTLE_ENDIAN, L"REG_QWORD_LITTLE_ENDIAN"));
 
-    if (!m_RegCreateKeyA.get())
+    if (!m_RegCreateKeyA.has_value())
     {
-        m_RegCreateKeyA.reset(new CAPIHook("Advapi32.dll", "RegCreateKeyA", (PROC)RegCreateKeyA));
+        m_RegCreateKeyA.emplace(L"Advapi32.dll", "RegCreateKeyA", RegCreateKeyA);
     }
 
-    if (!m_RegCreateKeyW.get())
+    if (!m_RegCreateKeyW.has_value())
     {
-        m_RegCreateKeyW.reset(new CAPIHook("Advapi32.dll", "RegCreateKeyW", (PROC)RegCreateKeyW));
+        m_RegCreateKeyW.emplace(L"Advapi32.dll", "RegCreateKeyW", RegCreateKeyW);
     }
 
-    if (!m_RegCreateKeyExA.get())
+    if (!m_RegCreateKeyExA.has_value())
     {
-        m_RegCreateKeyExA.reset(new CAPIHook("Advapi32.dll", "RegCreateKeyExA", (PROC)RegCreateKeyExA));
+        m_RegCreateKeyExA.emplace(L"Advapi32.dll", "RegCreateKeyExA", RegCreateKeyExA);
     }
     
-    if (!m_RegCreateKeyExW.get())
+    if (!m_RegCreateKeyExW.has_value())
     {
-        m_RegCreateKeyExW.reset(new CAPIHook("Advapi32.dll", "RegCreateKeyExW", (PROC)RegCreateKeyExW));
+        m_RegCreateKeyExW.emplace(L"Advapi32.dll", "RegCreateKeyExW", RegCreateKeyExW);
     }
 
-    if (!m_RegSetValueA.get())
+    if (!m_RegSetValueA.has_value())
     {
-        m_RegSetValueA.reset(new CAPIHook("Advapi32.dll", "RegSetValueA", (PROC)RegSetValueA));
+        m_RegSetValueA.emplace(L"Advapi32.dll", "RegSetValueA", RegSetValueA);
     }
 
-    if (!m_RegSetValueW.get())
+    if (!m_RegSetValueW.has_value())
     {
-        m_RegSetValueW.reset(new CAPIHook("Advapi32.dll", "RegSetValueW", (PROC)RegSetValueW));
+        m_RegSetValueW.emplace(L"Advapi32.dll", "RegSetValueW", RegSetValueW);
     }
 
-    if (!m_RegSetValueExA.get())
+    if (!m_RegSetValueExA.has_value())
     {
-        m_RegSetValueExA.reset(new CAPIHook("Advapi32.dll", "RegSetValueExA", (PROC)RegSetValueExA));
+        m_RegSetValueExA.emplace(L"Advapi32.dll", "RegSetValueExA", RegSetValueExA);
     }
 
-    if (!m_RegSetValueExW.get())
+    if (!m_RegSetValueExW.has_value())
     {
-        m_RegSetValueExW.reset(new CAPIHook("Advapi32.dll", "RegSetValueExW", (PROC)RegSetValueExW));
+        m_RegSetValueExW.emplace(L"Advapi32.dll", "RegSetValueExW", RegSetValueExW);
     }
 
-    if (!m_RegOpenKeyA.get())
+    if (!m_RegOpenKeyA.has_value())
     {
-        m_RegOpenKeyA.reset(new CAPIHook("Advapi32.dll", "RegOpenKeyA", (PROC)RegOpenKeyA));
+        m_RegOpenKeyA.emplace(L"Advapi32.dll", "RegOpenKeyA", RegOpenKeyA);
     }
 
-    if (!m_RegOpenKeyW.get())
+    if (!m_RegOpenKeyW.has_value())
     {
-        m_RegOpenKeyW.reset(new CAPIHook("Advapi32.dll", "RegOpenKeyW", (PROC)RegOpenKeyW));
+        m_RegOpenKeyW.emplace(L"Advapi32.dll", "RegOpenKeyW", RegOpenKeyW);
     }
 
-    if (!m_RegOpenKeyExA.get())
+    if (!m_RegOpenKeyExA.has_value())
     {
-        m_RegOpenKeyExA.reset(new CAPIHook("Advapi32.dll", "RegOpenKeyExA", (PROC)RegOpenKeyExA));
+        m_RegOpenKeyExA.emplace(L"Advapi32.dll", "RegOpenKeyExA", RegOpenKeyExA);
     }
 
-    if (!m_RegOpenKeyExW.get())
+    if (!m_RegOpenKeyExW.has_value())
     {
-        m_RegOpenKeyExW.reset(new CAPIHook("Advapi32.dll", "RegOpenKeyExW", (PROC)RegOpenKeyExW));
+        m_RegOpenKeyExW.emplace(L"Advapi32.dll", "RegOpenKeyExW", RegOpenKeyExW);
     }
 
-    if (!m_RegCloseKey.get())
+    if (!m_RegCloseKey.has_value())
     {
-        m_RegCloseKey.reset(new CAPIHook("Advapi32.dll", "RegCloseKey", (PROC)RegCloseKey));
+        m_RegCloseKey.emplace(L"Advapi32.dll", "RegCloseKey", RegCloseKey);
     }
 }
 
@@ -295,7 +296,7 @@ LONG WINAPI Interceptor::RegCreateKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResu
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGCREATEKEYA)(PROC)*m_RegCreateKeyA)(hKey, lpSubKey, phkResult);
+        result = m_RegCreateKeyA.value()(hKey, lpSubKey, phkResult);
     }
     catch (...)
     {
@@ -319,7 +320,7 @@ LONG WINAPI Interceptor::RegCreateKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkRes
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGCREATEKEYW)(PROC)*m_RegCreateKeyW)(hKey, lpSubKey, phkResult);
+        result = m_RegCreateKeyW.value()(hKey, lpSubKey, phkResult);
     }
     catch (...)
     {
@@ -345,7 +346,7 @@ LONG WINAPI Interceptor::RegCreateKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD Reser
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGCREATEKEYEXA)(PROC)*m_RegCreateKeyExA)(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired,
+        result = m_RegCreateKeyExA.value()(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired,
             lpSecurityAttributes, phkResult, lpdwDisposition);
     }
     catch (...)
@@ -372,7 +373,7 @@ LONG WINAPI Interceptor::RegCreateKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD Rese
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGCREATEKEYEXW)(PROC)*m_RegCreateKeyExW)(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired,
+        result = m_RegCreateKeyExW.value()(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired,
             lpSecurityAttributes, phkResult, lpdwDisposition);
     }
     catch (...)
@@ -398,7 +399,7 @@ LONG WINAPI Interceptor::RegSetValueA(HKEY hKey, LPCSTR lpSubKey, DWORD dwType, 
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGSETVALUEA)(PROC)*m_RegSetValueA)(hKey, lpSubKey, dwType, lpData, cbData);
+        result = m_RegSetValueA.value()(hKey, lpSubKey, dwType, lpData, cbData);
     }
     catch (...)
     {
@@ -422,7 +423,7 @@ LONG WINAPI Interceptor::RegSetValueW(HKEY hKey, LPCWSTR lpSubKey, DWORD dwType,
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGSETVALUEW)(PROC)*m_RegSetValueW)(hKey, lpSubKey, dwType, lpData, cbData);
+        result = m_RegSetValueW.value()(hKey, lpSubKey, dwType, lpData, cbData);
     }
     catch (...)
     {
@@ -447,7 +448,7 @@ LONG WINAPI Interceptor::RegSetValueExA(HKEY hKey, LPCSTR lpValueName, DWORD Res
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGSETVALUEEXA)(PROC)*m_RegSetValueExA)(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        result = m_RegSetValueExA.value()(hKey, lpValueName, Reserved, dwType, lpData, cbData);
     }
     catch (...)
     {
@@ -472,7 +473,7 @@ LONG WINAPI Interceptor::RegSetValueExW(HKEY hKey, LPCWSTR lpValueName, DWORD Re
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGSETVALUEEXW)(PROC)*m_RegSetValueExW)(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        result = m_RegSetValueExW.value()(hKey, lpValueName, Reserved, dwType, lpData, cbData);
     }
     catch (...)
     {
@@ -491,7 +492,7 @@ LONG WINAPI Interceptor::RegOpenKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGOPENKEYA)(PROC)*m_RegOpenKeyA)(hKey, lpSubKey, phkResult);
+        result = m_RegOpenKeyA.value()(hKey, lpSubKey, phkResult);
     }
     catch (...)
     {
@@ -510,7 +511,7 @@ LONG WINAPI Interceptor::RegOpenKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResul
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGOPENKEYW)(PROC)*m_RegOpenKeyW)(hKey, lpSubKey, phkResult);
+        result = m_RegOpenKeyW.value()(hKey, lpSubKey, phkResult);
     }
     catch (...)
     {
@@ -529,7 +530,7 @@ LONG WINAPI Interceptor::RegOpenKeyExA( HKEY hKey, LPCSTR lpSubKey, DWORD ulOpti
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGOPENKEYEXA)(PROC)*m_RegOpenKeyExA)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        result = m_RegOpenKeyExA.value()(hKey, lpSubKey, ulOptions, samDesired, phkResult);
     }
     catch (...)
     {
@@ -548,7 +549,7 @@ LONG WINAPI Interceptor::RegOpenKeyExW( HKEY hKey, LPCWSTR lpSubKey, DWORD ulOpt
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGOPENKEYEXW)(PROC)*m_RegOpenKeyExW)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        result = m_RegOpenKeyExW.value()(hKey, lpSubKey, ulOptions, samDesired, phkResult);
     }
     catch (...)
     {
@@ -567,7 +568,7 @@ LONG WINAPI Interceptor::RegCloseKey(HKEY hKey)
     LONG result = ERROR_ARENA_TRASHED;
     try
     {
-        result = ((PFNREGCLOSEKEY)(PROC)*m_RegCloseKey)(hKey);
+        result = m_RegCloseKey.value()(hKey);
     }
     catch (...)
     {

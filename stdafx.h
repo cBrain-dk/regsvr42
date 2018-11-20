@@ -43,6 +43,7 @@ freely, subject to the following restrictions:
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <optional>
 
 #include <comdef.h>
 #include <fstream>

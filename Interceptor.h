@@ -27,7 +27,7 @@ freely, subject to the following restrictions:
 #ifndef INTERCEPTOR_H
 #define INTERCEPTOR_H
 
-#include "APIHook.h"
+#include "utils.h"
 
 class Interceptor
 {
@@ -135,25 +135,5 @@ public:
     // Map of keys -> [name, value]
     typedef std::vector<std::pair<std::wstring, std::pair<std::wstring, std::wstring> > > ValuesListType;
     static ValuesListType m_valuesList;
-
-    static std::auto_ptr<CAPIHook> m_RegCreateKeyA;
-    static std::auto_ptr<CAPIHook> m_RegCreateKeyW;
-
-    static std::auto_ptr<CAPIHook> m_RegCreateKeyExA;
-    static std::auto_ptr<CAPIHook> m_RegCreateKeyExW;
-
-    static std::auto_ptr<CAPIHook> m_RegSetValueA;
-    static std::auto_ptr<CAPIHook> m_RegSetValueW;
-
-    static std::auto_ptr<CAPIHook> m_RegSetValueExA;
-    static std::auto_ptr<CAPIHook> m_RegSetValueExW;
-
-    static std::auto_ptr<CAPIHook> m_RegOpenKeyA;
-    static std::auto_ptr<CAPIHook> m_RegOpenKeyW;
-
-    static std::auto_ptr<CAPIHook> m_RegOpenKeyExA;
-    static std::auto_ptr<CAPIHook> m_RegOpenKeyExW;
-
-    static std::auto_ptr<CAPIHook> m_RegCloseKey;
 };
 #endif // INTERCEPTOR_H
