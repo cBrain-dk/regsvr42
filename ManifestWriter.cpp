@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 
 #include "stdafx.h"
 #include "ManifestWriter.h"
+#include "utils.h"
 
 /*
 
@@ -113,139 +114,6 @@ GUID_LENGTH(38) // {00000000-0000-0000-0000-000000000000}
     m_data << std::endl;
 }
 
-struct CBCryptAlgHandle
-{
-    BCRYPT_ALG_HANDLE h = 0;
-    inline operator BCRYPT_ALG_HANDLE()
-    {
-        return h;
-    }
-    inline BCRYPT_ALG_HANDLE* operator & ()
-    {
-        return &h;
-    }
-    inline ~CBCryptAlgHandle()
-    {
-        if (h)
-            BCryptCloseAlgorithmProvider(h, 0);
-    }
-};
-
-struct CBCryptHashHandle
-{
-    BCRYPT_HASH_HANDLE h = 0;
-    inline operator BCRYPT_HASH_HANDLE()
-    {
-        return h;
-    }
-    inline BCRYPT_HASH_HANDLE* operator & ()
-    {
-        return &h;
-    }
-    inline ~CBCryptHashHandle()
-    {
-        if (h)
-            BCryptDestroyHash(h);
-    }
-};
-
-struct DigestFunctionData
-{
-    CBCryptHashHandle &hashHandle;
-    NTSTATUS status;
-};
-
-BOOL WINAPI DigestFunction(
-    DIGEST_HANDLE refdata,
-    PBYTE pData,
-    DWORD dwLength
-)
-{
-    DigestFunctionData *data = reinterpret_cast<DigestFunctionData*>(refdata);
-    data->status = BCryptHashData(data->hashHandle, pData, dwLength, 0);
-    if (!NT_SUCCESS(data->status))
-    {
-        std::wcout << "Failed creating SHA256 hash: BCryptCreateHash failed with " << data->status << std::endl;
-    }
-    return NT_SUCCESS(data->status);
-}
-
-std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fileName, LPCWSTR algId, bool useImageGetDigestStream)
-{
-    CBCryptAlgHandle algHandle;
-    int status = BCryptOpenAlgorithmProvider(&algHandle, algId, nullptr, 0);
-    if (!NT_SUCCESS(status))
-    {
-        std::wcout << "Failed getting SHA256 provider: BCryptOpenAlgorithmProvider failed with " << status << std::endl;
-        return std::vector<UCHAR>();
-    }
-    DWORD hashObjLen;
-    ULONG dummy;
-    status = BCryptGetProperty(algHandle, BCRYPT_OBJECT_LENGTH, reinterpret_cast<PUCHAR>(&hashObjLen), sizeof(hashObjLen), &dummy, 0);
-    if (!NT_SUCCESS(status))
-    {
-        std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_OBJECT_LENGTH, ...) failed with " << status << std::endl;
-        return std::vector<UCHAR>();
-    }
-    DWORD hashLen;
-    status = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hashLen), sizeof(hashLen), &dummy, 0);
-    if (!NT_SUCCESS(status))
-    {
-        std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_HASH_LENGTH, ...) failed with " << status << std::endl;
-        return std::vector<UCHAR>();
-    }
-    std::vector<unsigned char> hashObj(hashObjLen, 0);
-    CBCryptHashHandle hashHandle;
-    status = BCryptCreateHash(algHandle, &hashHandle, hashObj.data(), hashObjLen, nullptr, 0, 0);
-    if (!NT_SUCCESS(status))
-    {
-        std::wcout << "Failed creating SHA256 hash: BCryptCreateHash failed with " << status << std::endl;
-        return std::vector<UCHAR>();
-    }
-
-    FILE* f = _wfopen(fileName.c_str(), L"rb");
-    if (useImageGetDigestStream)
-    {
-        DigestFunctionData data = { hashHandle = hashHandle, status = 0 };
-        if (!ImageGetDigestStream(
-            reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(f))),
-            CERT_PE_IMAGE_DIGEST_ALL_IMPORT_INFO,
-            DigestFunction,
-            &data))
-        {
-            if (NT_SUCCESS(data.status))
-            {
-                std::wcout << "Failed creating SHA256 hash: ImageGetDigestStream failed with " << GetLastError() << std::endl;
-            }
-        }
-    }
-    else
-    {
-        std::vector<char> buf(65536, 0);
-        std::ifstream fsIn(f);
-        while (fsIn.good())
-        {
-            fsIn.read(buf.data(), buf.size());
-            std::streamsize s = fsIn.gcount();
-            status = BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
-            if (!NT_SUCCESS(status))
-            {
-                std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
-                return std::vector<UCHAR>();
-            }
-        }
-    }
-
-    std::vector<UCHAR> hash(hashLen, 0);
-    status = BCryptFinishHash(hashHandle, hash.data(), hashLen, 0);
-    if (!NT_SUCCESS(status))
-    {
-        std::wcout << "Failed computing SHA256 hash: BCryptFinishHash failed with " << status << std::endl;
-        return std::vector<UCHAR>();
-    }
-    return hash;
-}
-
 void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
 {
     std::vector<UCHAR> hash(GetBCryptHash(fileName, BCRYPT_SHA256_ALGORITHM, false));
@@ -266,18 +134,6 @@ void ManifestWriter::AddSha256Hash(const std::wstring& fileName)
     m_data << L"        <dsig:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha256\" />" << std::endl;
     m_data << L"        <dsig:DigestValue>" << base64Hash << L"</dsig:DigestValue>" << std::endl;
     m_data << L"    </asmv2:hash>" << std::endl;
-}
-
-constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-std::wstring hexStr(unsigned char *data, int len)
-{
-  std::wstring s(len * 2, 0);
-  for (int i = 0; i < len; ++i) {
-    s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
-    s[2 * i + 1] = hexmap[data[i] & 0x0F];
-  }
-  return s;
 }
 
 void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo digestAlgos)
@@ -312,7 +168,7 @@ void ManifestWriter::AddFileSection(const std::wstring& fileName, DigestAlgo dig
         std::vector<unsigned char> hash(GetBCryptHash(fileName, BCRYPT_SHA1_ALGORITHM, true));
         if (!hash.empty())
         {
-            m_data << std::endl << "    hash=\"" << hexStr(hash.data(), hash.size()) << L"\" hashalg=\"SHA1\"";
+            m_data << std::endl << "    hash=\"" << HexStr(hash.data(), hash.size()) << L"\" hashalg=\"SHA1\"";
         }
     }
     if (digestAlgos & DigestAlgo::sha256)
@@ -420,15 +276,6 @@ std::wstring ManifestWriter::GetRelativePath(const std::wstring& relFrom, const 
     ret.resize(wcslen(ret.c_str()));
     return ret;
 }
-
-template<class _T1, class _T2>
-struct pair_hash {
-    inline std::size_t operator()(const std::pair<_T1, _T2> & v) const {
-        size_t h = std::hash<_T1>{}(v.first);
-        h ^= std::hash<_T2>{}(v.second) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        return h;
-    }
-};
 
 void ManifestWriter::ProcessData(const std::wstring& fileName, const Interceptor::ValuesListType& interceptedValues)
 {

@@ -94,7 +94,6 @@ private:
     void AddTypeLibrary(const TypeLib& typeLib);
     void AddInterface(const Interface& intf);
 
-    std::vector<unsigned char> GetBCryptHash(const std::wstring & fileName, LPCWSTR algId, bool useImageGetDigestStream);
     void AddSha256Hash(const std::wstring& fileName);
     void AddEndFileSection();
 

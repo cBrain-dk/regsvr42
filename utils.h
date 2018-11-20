@@ -68,3 +68,15 @@ public:
 private:
     TProc hookedFunc;
 };
+
+template<class _T1, class _T2>
+struct pair_hash {
+    inline std::size_t operator()(const std::pair<_T1, _T2> & v) const {
+        size_t h = std::hash<_T1>{}(v.first);
+        h ^= std::hash<_T2>{}(v.second) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
+
+std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR algId, bool useImageGetDigestStream);
+std::wstring HexStr(unsigned char *data, int len);

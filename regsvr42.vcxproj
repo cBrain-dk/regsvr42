@@ -139,6 +139,7 @@
     <ClCompile Include="ManifestWriter.cpp" />
     <ClCompile Include="regsvr42.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CmnHdr.h" />
