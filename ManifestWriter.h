@@ -28,10 +28,23 @@ freely, subject to the following restrictions:
 #define MANIFEST_WRITER_H
 
 #include "Interceptor.h"
-#include "regsvr42.h"
 
 // commdlg.h is silly and defines INTERFACE...
 #undef INTERFACE
+
+enum DigestAlgo : int 
+{ 
+    none = 0,
+    size = 1,
+    sha1 = 2,
+    sha256 = 4
+};
+
+inline DigestAlgo operator |= (DigestAlgo &lhs, DigestAlgo rhs)
+{
+    lhs = static_cast<DigestAlgo>(lhs | rhs);
+    return lhs;
+}
 
 struct ComClass
 {
