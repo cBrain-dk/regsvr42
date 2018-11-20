@@ -227,7 +227,7 @@ std::vector<unsigned char> ManifestWriter::GetBCryptHash(const std::wstring& fil
         {
             fsIn.read(buf.data(), buf.size());
             std::streamsize s = fsIn.gcount();
-            BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
+            status = BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
             if (!NT_SUCCESS(status))
             {
                 std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
