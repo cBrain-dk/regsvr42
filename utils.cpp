@@ -85,7 +85,7 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
     int status = BCryptOpenAlgorithmProvider(&algHandle, algId, nullptr, 0);
     if (!NT_SUCCESS(status))
     {
-        std::wcout << "Failed getting SHA256 provider: BCryptOpenAlgorithmProvider failed with " << status << std::endl;
+        std::wcout << L"Failed getting " << algId << L" provider: BCryptOpenAlgorithmProvider failed with " << status << std::endl;
         return std::vector<UCHAR>();
     }
     DWORD hashObjLen;
@@ -93,14 +93,14 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
     status = BCryptGetProperty(algHandle, BCRYPT_OBJECT_LENGTH, reinterpret_cast<PUCHAR>(&hashObjLen), sizeof(hashObjLen), &dummy, 0);
     if (!NT_SUCCESS(status))
     {
-        std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_OBJECT_LENGTH, ...) failed with " << status << std::endl;
+        std::wcout << L"Failed getting " << algId << L" provider: BCryptGetProperty(..., BCRYPT_OBJECT_LENGTH, ...) failed with " << status << std::endl;
         return std::vector<UCHAR>();
     }
     DWORD hashLen;
     status = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hashLen), sizeof(hashLen), &dummy, 0);
     if (!NT_SUCCESS(status))
     {
-        std::wcout << "Failed getting SHA256 provider: BCryptGetProperty(..., BCRYPT_HASH_LENGTH, ...) failed with " << status << std::endl;
+        std::wcout << L"Failed getting " << algId << L" provider: BCryptGetProperty(..., BCRYPT_HASH_LENGTH, ...) failed with " << status << std::endl;
         return std::vector<UCHAR>();
     }
     std::vector<unsigned char> hashObj(hashObjLen, 0);
@@ -108,7 +108,7 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
     status = BCryptCreateHash(algHandle, &hashHandle, hashObj.data(), hashObjLen, nullptr, 0, 0);
     if (!NT_SUCCESS(status))
     {
-        std::wcout << "Failed creating SHA256 hash: BCryptCreateHash failed with " << status << std::endl;
+        std::wcout << L"Failed creating " << algId << L" hash: BCryptCreateHash failed with " << status << std::endl;
         return std::vector<UCHAR>();
     }
 
@@ -124,7 +124,7 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
         {
             if (NT_SUCCESS(data.status))
             {
-                std::wcout << "Failed creating SHA256 hash: ImageGetDigestStream failed with " << GetLastError() << std::endl;
+                std::wcout << L"Failed creating " << algId << L" hash: ImageGetDigestStream failed with " << GetLastError() << std::endl;
             }
         }
     }
@@ -139,7 +139,7 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
             status = BCryptHashData(hashHandle, reinterpret_cast<PUCHAR>(buf.data()), s, 0);
             if (!NT_SUCCESS(status))
             {
-                std::wcout << "Failed computing SHA256 hash: BCryptHashData failed with " << status << std::endl;
+                std::wcout << L"Failed computing " << algId << L" hash: BCryptHashData failed with " << status << std::endl;
                 return std::vector<UCHAR>();
             }
         }
@@ -149,7 +149,7 @@ std::vector<unsigned char> GetBCryptHash(const std::wstring& fileName, LPCWSTR a
     status = BCryptFinishHash(hashHandle, hash.data(), hashLen, 0);
     if (!NT_SUCCESS(status))
     {
-        std::wcout << "Failed computing SHA256 hash: BCryptFinishHash failed with " << status << std::endl;
+        std::wcout << L"Failed computing " << algId << L" hash: BCryptFinishHash failed with " << status << std::endl;
         return std::vector<UCHAR>();
     }
     return hash;
