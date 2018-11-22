@@ -29,14 +29,15 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <tchar.h>
 
-#include "CmnHdr.h"
-
+#define _WIN32_WINNT 0x0600
+#define WINVER       0x0600
 #include <windows.h>
 #include <shlwapi.h>
 #include <bcrypt.h>
 #include <wincrypt.h>
 #include <winternl.h>
 #include <imagehlp.h>
+#include <comdef.h>
 
 #include <memory>
 #include <map>
@@ -45,7 +46,6 @@ freely, subject to the following restrictions:
 #include <vector>
 #include <optional>
 
-#include <comdef.h>
 #include <fstream>
 #include <algorithm>
 #include <cwctype>

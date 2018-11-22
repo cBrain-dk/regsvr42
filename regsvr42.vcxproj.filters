@@ -24,17 +24,11 @@
     <ClCompile Include="regsvr42.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CmnHdr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Interceptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>

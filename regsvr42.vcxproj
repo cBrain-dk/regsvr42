@@ -138,11 +138,9 @@
     <ClCompile Include="interceptor.cpp" />
     <ClCompile Include="ManifestWriter.cpp" />
     <ClCompile Include="regsvr42.cpp" />
-    <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CmnHdr.h" />
     <ClInclude Include="regsvr42.h" />
     <ClInclude Include="Interceptor.h" />
     <ClInclude Include="ManifestWriter.h" />
