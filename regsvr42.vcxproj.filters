@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="interceptor.cpp">
+    <ClCompile Include="Interceptor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ManifestWriter.cpp">

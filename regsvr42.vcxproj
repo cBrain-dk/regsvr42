@@ -135,7 +135,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="interceptor.cpp" />
+    <ClCompile Include="Interceptor.cpp" />
     <ClCompile Include="ManifestWriter.cpp" />
     <ClCompile Include="regsvr42.cpp" />
     <ClCompile Include="utils.cpp" />
